@@ -1,6 +1,5 @@
 # Análise descritiva
 
-
 dados <- read_csv(file = "Dados/dados_processados.csv")
 
 # Barras - 
@@ -73,5 +72,5 @@ ggplot(dados) +
 
 #############################################
 
-Caracterizar o perfil de bons e maus pagadores
-
+#Caracterizar o perfil de bons e maus pagadores
+# https://www.applyscience.it/dashboards-and-data-products-with-r/
