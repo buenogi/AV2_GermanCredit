@@ -3,11 +3,11 @@ library(magrittr)
 library(stringr)
 library(esquisse)
 
-# Organizacao
+# Organizacao-------------------------------------------------------------------
 
 dados <- read.csv("Dados/Base_Geman.csv")
 
-# Correcao estado civil --------------------------------------------------------
+ # Correcao estado civil --------------------------------------------------------
 
 dados%<>%
   separate(Status.pessoal.e.gênero, into = c("genero", "estado_civil"), sep = ":")
@@ -27,7 +27,7 @@ class(dados$estado_civil)
 dados%>%
   group_by(estado_civil)%>%
   summarise(contagem = n())
-# Correcao status conta corrente existente -------------------------------------
+ # Correcao status conta corrente existente -------------------------------------
 
 dados%>%
   group_by(Status.da.conta.corrente.existente)%>%
@@ -53,7 +53,7 @@ for (i in 1:nrow(dados)) {
 
 glimpse(dados$Status.da.conta.corrente.existente)
 
-# Correções conta poupança títulos --------------------------------------------
+ # Correções conta poupança títulos --------------------------------------------
 
 dados <- dados %>%
   mutate(Conta.poupança.títulos = 
@@ -77,7 +77,7 @@ for (i in 1:nrow(dados)) {
 glimpse(dados$Conta.poupança.títulos)
 
 
-# Correcao "Emprego atual desde":----------------------------------------------
+ # Correcao "Emprego atual desde":----------------------------------------------
 
 dados <- dados %>%
   mutate(Emprego.atual.desde = 
@@ -104,9 +104,8 @@ for (i in 1:nrow(dados)) {
 glimpse(dados$Emprego.atual.desde)
 
 
-# Nomenclatura variaveis ------------------------------------------------------------
-
-# Classificação de variáveis----------------------------------------------------
+ # Nomenclatura variaveis
+ # Classificação de variáveis----------------------------------------------------
 
 # Variáveis para descrição de perfil socioeconomico
 
@@ -121,13 +120,14 @@ glimpse(dados$Emprego.atual.desde)
 # Variáveis para descrição do cenário patrimonial
 
 # 8 - Habitação - qualitativa nominal
+#      Residencia atual desde - qualitativa ordinal
 # 9 - Propriedade - qualitativa nominal
 # 10 - Telefone - Qualitativa nominal
 # 11 - Propósito - qualitativa - nominal
 # 12 - Conta poupança títulos - qualitativa ordinal
 # 13 - Nº de responsaveis pela manutenção - Quantitativa discreta
 
-# Histórico --------------------------------------------------------------------
+# Variáveis para descrição do histórico de crédito
 
 # 14 - Status conta - qualitativa ordinal
 # 15 - Duração em mês - ?
@@ -158,15 +158,50 @@ sapply(dados, class)
 
 # Separação dos bancos de dados por perfil -------------------------------------
 
-dSocio
+dadosSocio <- dados%>%
+  select(ID, genero, idade_anos, estado_civil,status_ocupacional,
+         temp_man_empr_atual,nacionalidade, classe)
 
-# AED
+# 1 - Gênero - qualitativas nominais
+# 2 - Idade em anos - Quantitativa discreta
+# 3 - Estado civil
+# 4 - Status ocupacional - Qualitativa nominal 
+# 6 - Tempo de serviço no emprego atual - qualitativa ordinal
+# 7 - Trabalhador estrangeiro qualitativa nominal
 
-teste <- dados%>%
-  group_by(Classe ="Bom")%>%
-  summarise(total_classe = n())
+write_csv(dados, file = "Dados/dadosSocio.csv")
 
+dadosPatr <- dados%>%
+  select(ID, habitacao, tempo_res_atual, patrimonio, telefone,proposito,
+         reserva, n_corresponsaveis, classe)
 
+# 8 - Habitação - qualitativa nominal
+# 9 -  Residencia atual desde - qualitativa ordinal
+# 10 - Propriedade - qualitativa nominal
+# 11 - Telefone - Qualitativa nominal
+# 12 - Propósito - qualitativa - nominal
+# 13 - Conta poupança títulos - qualitativa ordinal
+# 14 - Nº de responsaveis pela manutenção - Quantitativa discreta 
+
+write_csv(dados, file = "Dados/dadosPatr.csv")
+
+dadosHist <- dados%>%
+  select(ID,status_conta,duracao_mes,hist_credito,qtdd_credito,
+         percen_tx_rendim_disp, dev_fiadores,outros_par,n_creditos,classe)
+
+write_csv(dados, file = "Dados/dadosHist.csv")
+
+# Histórico
+
+# 14 - Status conta - qualitativa ordinal
+# 15 - Duração em mês - ?
+# 16 - Histórico de crédito - qualitativa nominal
+# 17 - Quantidade de crédito - quantitativa discreta (credito atual)
+# 18 - Taxa do parcelamento com relação a renda disponível
+# 19 - Outros devedores/fiadores - qualitativa nominal
+# 20 - Outros planos de parcelamento  - Qualitativa ordinal
+# 21 - Nº de créditos existentes  - Quantitativa discreta
+# 22 - Classe - Qualitativa nominal
 
 
 write_csv(dados, file = "Dados/dados_processados.csv")
