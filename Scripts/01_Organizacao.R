@@ -142,7 +142,7 @@ glimpse(dados$Emprego.atual.desde)
 colnames(dados) <- c("status_conta","duracao_mes", "hist_credito","proposito","qtdd_credito",
   "reserva","temp_man_empr_atual","percen_tx_rendim_disp","genero","estado_civil",
   "dev_fiadores","tempo_res_atual","patrimonio", "idade_anos","outros_par","habitacao",
-  "n_creditos","status_ocupacional","n_corresponsaveis","telefone","nacionalidade","classe"
+  "n_creditos","status_ocupacional","n_corresponsaveis","telefone","estrangeiro","classe"
 )
 
 dados$ID <- c(1:1000) # identificador
@@ -160,7 +160,7 @@ sapply(dados, class)
 
 dadosSocio <- dados%>%
   select(ID, genero, idade_anos, estado_civil,status_ocupacional,
-         temp_man_empr_atual,nacionalidade, classe)
+         temp_man_empr_atual,estrangeiro, classe)
 
 # 1 - Gênero - qualitativas nominais
 # 2 - Idade em anos - Quantitativa discreta
@@ -169,7 +169,7 @@ dadosSocio <- dados%>%
 # 6 - Tempo de serviço no emprego atual - qualitativa ordinal
 # 7 - Trabalhador estrangeiro qualitativa nominal
 
-write_csv(dados, file = "Dados/dadosSocio.csv")
+write_csv(dadosSocio, file = "Dados/dadosSocio.csv")
 
 dadosPatr <- dados%>%
   select(ID, habitacao, tempo_res_atual, patrimonio, telefone,proposito,
@@ -183,13 +183,13 @@ dadosPatr <- dados%>%
 # 13 - Conta poupança títulos - qualitativa ordinal
 # 14 - Nº de responsaveis pela manutenção - Quantitativa discreta 
 
-write_csv(dados, file = "Dados/dadosPatr.csv")
+write_csv(dadosPatr, file = "Dados/dadosPatr.csv")
 
 dadosHist <- dados%>%
   select(ID,status_conta,duracao_mes,hist_credito,qtdd_credito,
          percen_tx_rendim_disp, dev_fiadores,outros_par,n_creditos,classe)
 
-write_csv(dados, file = "Dados/dadosHist.csv")
+write_csv(dadosHist, file = "Dados/dadosHist.csv")
 
 # Histórico
 

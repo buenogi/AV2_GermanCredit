@@ -4,7 +4,7 @@ dados <- read_csv(file = "Dados/dados_processados.csv")
 
 # Barras - 
 
-# Genero:
+# Genero:-----------------------------------------------------------------------
 
 ggplot(dados) +
   aes(x = genero) +
@@ -74,3 +74,8 @@ ggplot(dados) +
 
 #Caracterizar o perfil de bons e maus pagadores
 # https://www.applyscience.it/dashboards-and-data-products-with-r/
+
+
+  
+  
+#  n_corresponsaveis n_creditos percen_tx_rendim_disp idade_anos
