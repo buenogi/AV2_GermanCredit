@@ -58,8 +58,8 @@ ggplot(dadosSocio) +
   theme_minimal() +
   theme(legend.position = "none")
 
-# ggplot(dadosSocio) +
-aes(x = idade_anos, fill = genero) +
+dadosSocio%>%
+  ggplot(aes(x = idade_anos, fill = genero)) +
   geom_density(adjust = 1L) +
   scale_fill_viridis_d(option = "viridis", direction = 1) +
   theme_minimal() +
@@ -205,17 +205,25 @@ plot <- patrcount%>%
   geom_text(stat = "stratum", label.strata = TRUE, color = "black") +
   scale_x_discrete(limits = c(  "Patrimônio", "Propósito","Reserva/\npoupança"),
                    # ,"patrimonio","reserva"),
-                   expand = c(.05, .05)) +
-  scale_fill_manual(values = c( "#006b5e","#ff6600",  "#970000","#dc6bdb", "#007a00")) +
-  labs(y = "Cases") +
+                   expand = c(.05, .05))+
   theme_minimal() +
   theme(legend.position = "none") +
-  ggtitle("Perfil sociodemográfico")
+  ggtitle("Perfil sociodemográfico")+
+  scale_fill_viridis_d()
 
 plotly::ggplotly(plot)
 
-plot(dados$idade_anos, dados$qtdd_credito)
-dados%>%
-  ggplot(aes(idade_anos, qtdd_credito, size =  duracao_mes, color =proposito))+
-  geom_point()+
-  facet_wrap( ~reserva)
+
+ggplot(dadosSocio) +
+  aes(x = "", y = idade_anos, fill = genero) 
+
+geom_boxplot() +
+  scale_fill_manual(values = c(Homem = "#FF6600", 
+                               Mulher = "#007F63")) +
+  labs(y = "Idade em anos", title = "Status ocupacional por idade e gênero",
+       fill = "Gênero") +
+  theme_minimal() 
+# theme(plot.title = element_text(size = 18L, face = "bold", hjust = 0.5), 
+#       axis.title.y = element_text(size = 14L, face = "bold"),
+#       axis.title.x = element_text(size = 1L)) +
+# facet_wrap(vars(status_ocupacional), ncol = 4L)
