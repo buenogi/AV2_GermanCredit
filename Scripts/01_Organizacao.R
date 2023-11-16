@@ -1,7 +1,6 @@
 library(tidyverse)
 library(magrittr)
 library(stringr)
-library(esquisse)
 
 # Organizacao-------------------------------------------------------------------
 
@@ -41,13 +40,14 @@ dados <- dados %>%
 
 for (i in 1:nrow(dados)) {
   if (dados$Status.da.conta.corrente.existente[i] == "...<0MarcoAlemão") {
-    dados$Status.da.conta.corrente.existente[i] <- "negativo"
+    dados$Status.da.conta.corrente.existente[i] <- "Negativo"
   } else if (dados$Status.da.conta.corrente.existente[i] == "0<=...<200MarcoAlemão") {
-    dados$Status.da.conta.corrente.existente[i] <- "regular"
-  } else if (dados$Status.da.conta.corrente.existente[i] == "...>200MarcoAlemão/atribuiçõessalariaisporpelomenos1ano") {
-    dados$Status.da.conta.corrente.existente[i] <- "alto"
+    dados$Status.da.conta.corrente.existente[i] <- "Regular"
+  } else if (dados$Status.da.conta.corrente.existente[i] == "...>200MarcoAlemão/atribuiçõessalariaisporpelomenos1ano"|
+             dados$Status.da.conta.corrente.existente[i] == "...>=200MarcoAlemão/atribuiçõessalariaisporpelomenos1ano") {
+    dados$Status.da.conta.corrente.existente[i] <- "Alto"
   } else if (dados$Status.da.conta.corrente.existente[i] == "semcontacorrente"){
-    dados$Status.da.conta.corrente.existente[i] <- " inexistente"
+    dados$Status.da.conta.corrente.existente[i] <- "Inexistente"
   }
 }
 
