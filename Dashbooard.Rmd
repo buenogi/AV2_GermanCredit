@@ -1,0 +1,302 @@
+---
+title: "Análise de crédito - GermanCredit"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    theme: readable
+    vertical_layout: fill
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(ggplot2)
+library(plotly)
+library(ggalluvial)
+library(dplyr)
+library(stringr)
+library(shinydashboard)
+dados <- read.csv("Dados/dados_processados_2.csv")
+
+customValueBox <- function(value, subtitle, color) {
+  tags$div(
+    class = "metric-box",
+    style = sprintf("background-color: %s;", color),
+    tags$div(class = "value", value),
+    tags$div(class = "subtitle", subtitle)
+  )
+}
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+Análise de clientes por propósito
+=================
+Inputs {.sidebar}
+---
+```{r}
+selectInput("proposito",label = "Propósito: ", choices = unique(dados$proposito), selected = "carro (novo)")
+
+sliderInput("idade_anos",label = "Faixa etária ", min = 18, max = 80, step = 5, dragRange = TRUE, 
+                  value = c(18, 80) )
+```
+
+
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+### "Idade por gênero"
+```{r}
+  renderPlot({dados%>% 
+        filter(idade_anos > input$idade_anos[1] & 
+                 idade_anos < input$idade_anos[2]) %>% 
+        filter(proposito %in% input$proposito)%>%
+  ggplot(aes(idade_anos,  y = genero))+
+  geom_violin(alpha = 0.4, fill = "#440154", color = "white")+
+  geom_boxplot(width = 0.28, fill = "#440154", color = "black")+
+  labs(x = "Idade (anos)",
+       y = "Densidade",
+       fill = "Gênero:")+
+  scale_x_continuous(breaks = seq(from = 20, to = 80, by = 10))+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold"),
+        plot.title = element_text(hjust = 0.5))
+   })
+```
+###  Quantidade de crédito x idade x propósito x reserva
+
+```{r}
+renderPlotly({
+P2 <- dados %>%
+mutate(reserva = str_replace_all(reserva, 
+c("desconhecido/semcontapoupança" = "Desconhecido/Inexistente")))%>%
+mutate(reserva = factor(reserva, levels = c("Desconhecido/Inexistente",
+"< 100","100 - 500","500 - 1000",
+"> 1000")))%>% 
+        filter(idade_anos > input$idade_anos[1] & 
+                 idade_anos < input$idade_anos[2]) %>% 
+        filter(proposito %in% input$proposito)%>%
+ggplot(aes(idade_anos, qtdd_credito, color =proposito))+
+geom_jitter( size = 3)+
+facet_wrap(~reserva, nrow = 1, 
+labeller = labeller(reserva = c(
+"Desconhecido/Inexistente" = "Desconhecido\nInexistente",
+"< 100" = "< 100",
+"100 - 500" = "100 - 500",
+"500 - 1000" = "500 - 1000",
+"> 1000" = "> 1000"
+))
+)+
+labs(x = "Idade (anos)",
+y = "Crédito disponível",
+color = "Propósito")+
+scale_color_viridis_d()+
+theme_bw()+
+theme(text = element_text(size = 14, face = "bold"),
+legend.position = "bottom")
+plotly::ggplotly(P2)})
+```
+
+### Patrimônio e status da conta por gênero
+
+```{r}
+ renderPlotly({
+   
+dados$patrimonio <- ifelse(dados$patrimonio == "desconhecido/sem propriedade", "Sem posses/\ndesconhecido",
+                           ifelse(dados$patrimonio == "carro ou outro, não em conta poupança/títulos", "Carro/outro",
+                                  ifelse(dados$patrimonio == "contrato de poupança/seguro de vida da sociedade civil", "Poupança/\nSeguro de vida",
+                                         ifelse(dados$patrimonio == "imobiliária", "Imóvel", dados$patrimonio))))
+
+P5 <- dados%>%
+  filter(idade_anos > input$idade_anos[1] & 
+                 idade_anos < input$idade_anos[2]) %>% 
+        filter(proposito %in% input$proposito)%>%
+  mutate(status_conta = 
+           factor(status_conta, 
+                  levels = c("Alto","Regular",
+                             "Negativo","Inexistente")))%>%
+  mutate(patrimonio = 
+           factor(patrimonio, 
+                  levels = c("Sem posses/\ndesconhecido", "Carro/outro",
+                             "Poupança/\nSeguro de vida","Imóvel")))%>%
+  
+  ggplot() +
+  aes(x = patrimonio, fill = status_conta) +
+  geom_bar(position = "fill") +
+  theme_minimal() +
+  labs(x = "Patrimonio",
+       y = "(%)",
+       color = "Status da conta")+
+  scale_fill_manual(values = c("#fde725",
+                               "#5ec962",
+                               "#21918c",
+                               "#440154"))+
+  facet_wrap(vars(genero))+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold"))
+  
+plotly::ggplotly(P5)
+ })
+```
+
+Colum {.tabset}
+---
+###  Média de crédito por  propósito e gênero
+
+```{r}
+renderTable({  
+  RESUMO <- dados%>%filter(idade_anos > input$idade_anos[1] & 
+                             idade_anos < input$idade_anos[2]) %>% 
+  filter(proposito %in% input$proposito)%>%
+  group_by(proposito,genero)%>%
+  summarise("Média" = mean(qtdd_credito),
+            "Desvio padrão" = sd(qtdd_credito),
+            "Mínimo" = min(qtdd_credito),
+            "1º Quartil" = quantile(qtdd_credito, 0.25),
+            "Mediana" = quantile(qtdd_credito, 0.5),
+            "3º Quartil" = quantile(qtdd_credito, 0.75),
+            "Máximo" = max(qtdd_credito))})
+```
+---
+### Disparidades das médias de crédito fornecido por gênero
+```{r}
+renderPlotly({
+  RESUMO <- dados %>%
+    filter(idade_anos > input$idade_anos[1] & idade_anos < input$idade_anos[2]) %>%
+    filter(proposito %in% input$proposito) %>%
+    group_by(proposito, genero) %>%
+    summarise(Média = mean(qtdd_credito),
+              `Desvio padrão` = sd(qtdd_credito),
+              Mínimo = min(qtdd_credito),
+              `1º Quartil` = quantile(qtdd_credito, 0.25),
+              Mediana = quantile(qtdd_credito, 0.5),
+              `3º Quartil` = quantile(qtdd_credito, 0.75),
+              Máximo = max(qtdd_credito))
+  
+  P3 <- ggplot(RESUMO, aes(x = genero, y = Média, group = proposito)) +
+    geom_line(aes(color = proposito), size = 1.5) +
+    geom_point(aes(color = proposito), size = 3) +
+    labs(x = "Gênero",
+         y = "Média de crédito concedido",
+         color = "Propósito") +
+    theme_minimal() +
+    scale_color_viridis_d() +
+    theme(text = element_text(size = 14, face = "bold"))
+  
+  ggplotly(P3)
+})
+
+```
+
+### Média de crédito por histórico de cŕedito e genero
+```{r}
+renderTable({RESUMO2<- dados%>%
+  filter(idade_anos > input$idade_anos[1] & 
+                             idade_anos < input$idade_anos[2]) %>% 
+  group_by(hist_credito,genero)%>%
+  summarise("Média" = mean(qtdd_credito),
+            "Desvio padrão" = sd(qtdd_credito),
+            "Mínimo" = min(qtdd_credito),
+            "1º Quartil" = quantile(qtdd_credito, 0.25),
+            "Mediana" = quantile(qtdd_credito, 0.5),
+            "3º Quartil" = quantile(qtdd_credito, 0.75),
+            "Máximo" = max(qtdd_credito))})
+```
+### Disparidades da média de crédito por histórico de cŕedito e genero
+```{r}
+renderPlotly({
+P4 <- RESUMO2<- dados%>%
+  filter(idade_anos > input$idade_anos[1] & 
+                             idade_anos < input$idade_anos[2]) %>% 
+  group_by(hist_credito,genero)%>%
+  summarise("Média" = mean(qtdd_credito),
+            "Desvio padrão" = sd(qtdd_credito),
+            "Mínimo" = min(qtdd_credito),
+            "1º Quartil" = quantile(qtdd_credito, 0.25),
+            "Mediana" = quantile(qtdd_credito, 0.5),
+            "3º Quartil" = quantile(qtdd_credito, 0.75),
+            "Máximo" = max(qtdd_credito))%>%
+    ggplot(aes(x = genero, y = `Média`, group = hist_credito))+
+  geom_line(aes(color = hist_credito), size = 1.5)+
+  geom_point(aes(color = hist_credito),size = 3)+
+  labs(x = "Gênero",
+       y = "Media de crédito concedido", 
+       color = "Histórico de pagamento")+
+  theme_minimal()+
+  scale_color_viridis_d()+
+  theme(text = element_text(size = 14, face = "bold"),
+        legend.position = "bottom")
+plotly::ggplotly(P4)
+    
+})
+```
+### Duração do parcelamento  idade e tempo de manutenção do emprego
+```{r}
+renderPlot({P6 <- dados%>%
+  filter(idade_anos > input$idade_anos[1] & 
+                 idade_anos < input$idade_anos[2]) %>% 
+        filter(proposito %in% input$proposito)%>%
+  ggplot(aes(idade_anos, duracao_mes, size = percen_tx_rendim_disp, color = outros_par))+
+  geom_point( alpha = 0.7)+
+  scale_color_manual(values = c("#fde725","#440154","#21918c"))+
+  facet_wrap(genero~temp_man_empr_atual, nrow = 2)+
+  labs(x = "Idade (anos)",
+       y = "Duração dos parcelamentos (mês)",
+       size = "Percentual\n da taxa de juros\n com relação ao salário",
+       color = "Existencia de\noutros parcelamentos")+
+  theme_bw()+
+  theme(text = element_text(size = 14, face = "bold"))
+
+P6})
+```
+
+
+### Perfil ocupacional
+```{r}
+renderPlotly({
+dados$status_ocupacional <- ifelse(dados$status_ocupacional == 
+                                     "desempregado/não qualificado - não residente", "Desempregado/\nnão qualificado",
+                                   ifelse(dados$status_ocupacional == "funcionário/funcionário qualificado", "Empregado\nqualificado",
+                                          ifelse(dados$status_ocupacional == "gestão / autônomo / funcionário / diretor altamente qualificado", "Empregado em \n cargo superior\n qualificado",
+                                                 ifelse(dados$status_ocupacional == "não qualificado - residente", "Desempregado/\nnão qualificado", dados$status_ocupacional))))
+
+
+dados <- dados%>%
+  mutate(temp_man_empr_atual = factor(temp_man_empr_atual, 
+                                      levels = c("> 7", "4 - 7","1 - 4",
+                                                 "...<1ano","desempregado")))%>%
+  mutate(status_ocupacional = factor(status_ocupacional, levels = c(
+    "Empregado em \n cargo superior\n qualificado", "Empregado\nqualificado","Desempregado/\nnão qualificado"
+  )))
+COUNT2 <- dados%>%
+  filter(idade_anos > input$idade_anos[1] & 
+                             idade_anos < input$idade_anos[2]) %>% 
+  count(temp_man_empr_atual,status_ocupacional,estrangeiro,  genero)
+
+
+P8 <- COUNT2 %>%
+  ggplot(aes(y = n, axis1 = genero,
+             axis2 = estrangeiro,
+             axis3 = status_ocupacional,
+             axis4 = temp_man_empr_atual)) +
+  geom_alluvium(aes(fill = genero), aes.bind = "flows", width = 1/12) +
+  geom_stratum(width = 1/3, fill = "white", color = "darkgray") +
+  geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 3) +
+  scale_x_discrete(limits = c("axis1" = "Gênero", 
+                              "axis2" = "Imigrante",
+                              "axis3" = "Status\nocupacional",
+                              "axis4" = "Tempo no\nemprego\natual"),
+                   expand = c(.05, .05)) +
+  labs(y = "Cases", title = "Perfil Ocupacional") +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  scale_fill_manual(values = c("#21918c", "#440154"))+
+  geom_label(stat = "stratum", aes(label = after_stat(stratum)),
+             fontface = "bold", size = 3) 
+
+
+P8
+
+plotly::ggplotly(P8)})
+```
+

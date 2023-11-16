@@ -227,3 +227,35 @@ geom_boxplot() +
 #       axis.title.y = element_text(size = 14L, face = "bold"),
 #       axis.title.x = element_text(size = 1L)) +
 # facet_wrap(vars(status_ocupacional), ncol = 4L)
+
+
+
+# Correção de Status de conta:--------------------------
+# 
+# 
+# 
+# P2 <- dados%>%
+#   mutate(reserva = factor(reserva, levels = c("Desconhecido/Inexistente",
+#                                               "< 100","100 - 500","500 - 1000",
+#                                               "> 1000")))%>%
+# 
+#   dados <- dados %>%
+#   mutate(proposito = str_replace_all(proposito, "carro \\(usado\\)0", "carro (usado)"))
+# 
+#NÃO INCLUIR # Taxa de cŕedito idade e patrimonio -----------------------------
+# 
+# dados%>%
+#   ggplot(aes(idade_anos, percen_tx_rendim_disp, color = status_ocupacional))+
+#   geom_point()+
+#   facet_wrap(~patrimonio)
+# 
+# 
+# dados%>%
+#   ggplot(aes(idade_anos, percen_tx_rendim_disp, color = patrimonio ))+
+#   geom_point()+
+#   facet_wrap(genero~temp_man_empr_atual)
+# 
+# 
+# plot(dados$idade_anos, dados$qtdd_credito)
+# Aqui vai ser importante poder selecionar qual é o proposito que se deseja 
+# visualizar e filtrar idades
