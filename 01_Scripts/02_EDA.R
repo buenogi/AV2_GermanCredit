@@ -1,11 +1,18 @@
+################################################################################
+#################### Análise exploratória de Dados #############################
+################################################################################
+
 library(ggplot2)
 library(ggalluvial)
 library(dplyr)
 library(stringr)
 
 # Dados ------------------------------------------------------------------------
-dados  <- read.csv(file = "Dados/dados_processados.csv")
+
+dados  <- read.csv(file = "00_Dados/01_Processed/dados_processados.csv")
+
 # Manipulação ------------------------------------------------------------------
+# Conversão das classes das variáveis
 for (i in 1:ncol(dados)) {
   if (is.character(dados[[i]])) {
     dados[[i]] <- as.factor(dados[[i]])
@@ -19,15 +26,29 @@ summary(dados)
 dados <- dados %>%
   mutate(proposito = str_replace_all(proposito, "carro \\(usado\\)0", "carro (usado)"))
 
+# Edição do texto de resposta para histórico de crédito
+
+dados <- dados %>%
+  mutate(
+    hist_credito = str_replace_all(hist_credito, 
+                                   c(
+                                     "todos os créditos deste banco foram devidamente pagos|nenhum crédito obtido/todos os créditos pagos devidamente" = "Quitados",
+                                     "créditos existentes pagos devidamente até agora" = "Em aberto mas em dia",
+                                     "conta crítica/outros créditos existentes (não neste banco)" = "Em aberto e pendente (outros bancos)",
+                                     "atraso no pagamento no passado" = "Pago mas já esteve em atraso"
+                                   )
+    )
+  ) %>%
+  mutate(hist_credito = if_else(is.na(hist_credito), NA, hist_credito))
 
 # Objetivo ---------------------------------------------------------------------
 
-# Identificar,  com base nos propósitos, identificar quais são 
-# os campos disponíveis para fornecimento de novas linhas de crédito. 
+# Identificar,  com base nos propósitos, o padrão de fornecimento de empréstimo, 
+# os principais fatores relacionados a inadimplência e campos disponíveis para
+# fornecimento de novas linhas de crédito. 
 
 # EDA --------------------------------------------------------------------------
-# Com base na seleção do propósito
-  
+
 # Resultado 1 - Plot 1-  Status ocupacional por idade e gênero---------------
 
 P1 <- dados%>%
@@ -44,22 +65,41 @@ P1 <- dados%>%
         plot.title = element_text(hjust = 0.5))
 P1
 
-# Resultado 2 - Taxa de inadimplência por gênero -------------------------------
-# Manipulação
-dados <- dados %>%
-  mutate(
-    hist_credito = str_replace_all(hist_credito, 
-                                   c(
-                                     "todos os créditos deste banco foram devidamente pagos|nenhum crédito obtido/todos os créditos pagos devidamente" = "Quitados",
-                                     "créditos existentes pagos devidamente até agora" = "Em aberto mas em dia",
-                                     "conta crítica/outros créditos existentes (não neste banco)" = "Em aberto e pendente (outros bancos)",
-                                     "atraso no pagamento no passado" = "Pago mas já esteve em atraso"
-                                   )
-    )
-  ) %>%
-  mutate(hist_credito = if_else(is.na(hist_credito), NA, hist_credito))
+# Resultado 2 - Taxa de inadimplência por propósito-----------------------------
+dados$proposito <- as.factor(dados$proposito)
+propositos <- levels(dados$proposito)
 
-#  Gera a taxa de inadimplência por grupo filtrado - Reescrever como função
+TxInadimplencia <- data.frame("Proposito" = character(0), "TaxaDeInadimplencia" = numeric(0))
+
+TotalTxInadimplencia <- data.frame("hist_credito" = character(0), "FreqRel" = numeric(0),
+                                    "proposito"  = character(0))
+
+for (i in propositos) {
+  denominador <- dados %>%
+    filter(proposito == i) %>%
+    summarise(totalgrupo = n())
+  Tx_Inadimplencia <- dados %>%
+    filter(proposito == i) %>%
+    group_by(hist_credito) %>%
+    summarise(FreqRel = n() / denominador$totalgrupo)
+  Tx_Inadimplencia$proposito = i
+  TotalTxInadimplencia = rbind(TotalTxInadimplencia, Tx_Inadimplencia)
+}
+
+Inadimplencia <-  TotalTxInadimplencia%>%
+  filter(hist_credito == "atraso no pagamento no passado"|
+           hist_credito == "conta crítica/outros créditos existentes (não neste banco)")
+
+Inadimplencia <- Inadimplencia %>%
+  mutate(hist_credito = str_replace_all(hist_credito, 
+                                        c("atraso no pagamento no passado" = "Atraso no passado",
+                                          "conta crítica/outros créditos existentes (não neste banco)" = "Atraso no presente (não neste banco)")))
+
+InadimplenciaGeral <- Inadimplencia%>%
+  group_by(proposito)%>%
+  summarise(InadimplenciaTotal= sum(FreqRel))
+
+#  Gera a taxa de inadimplência por grupo filtrado
 denominador <- dados%>%
   filter(proposito == "eletrodomésticos")%>%
   summarise(totalgrupo = n())
