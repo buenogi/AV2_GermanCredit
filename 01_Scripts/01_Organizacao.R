@@ -8,7 +8,7 @@ library(stringr)
 
 # Organizacao-------------------------------------------------------------------
 
-dados <- read.csv("Dados/00_Raw/Base_Geman.csv")
+dados <- read.csv("00_Dados/00_Raw/Base_Geman.csv")
 
 # Correcao estado civil --------------------------------------------------------
 
@@ -108,7 +108,18 @@ for (i in 1:nrow(dados)) {
 
 glimpse(dados$Emprego.atual.desde)
 
-# Correção de Status de conta:
+# Correção de histórico de conta:
+
+# Edição do texto de resposta para histórico de crédito
+dados <- dados %>%
+  mutate(
+    Histórico.de.crédito = str_replace_all(Histórico.de.crédito, 
+                                   c("todos os créditos deste banco foram devidamente pagos|nenhum crédito obtido/todos os créditos pagos devidamente" = "Quitados",
+                                     "créditos existentes pagos devidamente até agora" = "Pago em dia",
+                                     "conta crítica/outros créditos existentes \\(não neste banco\\)" = "Pendente (outros bancos)",
+                                     "atraso no pagamento no passado" = "Pago mas já esteve em atraso"
+                                   ))) %>%
+  mutate(Histórico.de.crédito = if_else(is.na(Histórico.de.crédito), NA, Histórico.de.crédito))
 
 
 
@@ -163,6 +174,11 @@ for (i in 1:ncol(dados)) {
 sapply(dados, class)
 
 
+dados <- dados %>%
+  mutate(proposito = str_replace_all(proposito, "carro \\(usado\\)0", "carro (usado)"))
+
+
+
 # Separação dos bancos de dados por perfil -------------------------------------
 
 dadosSocio <- dados%>%
@@ -176,7 +192,7 @@ dadosSocio <- dados%>%
 # 6 - Tempo de serviço no emprego atual - qualitativa ordinal
 # 7 - Trabalhador estrangeiro qualitativa nominal
 
-write_csv(dadosSocio, file = "Dados/01_Processed/dadosSocio.csv")
+write.csv(dadosSocio, file = "00_Dados/01_Processed/dadosSocio.csv")
 
 dadosPatr <- dados%>%
   select(ID, habitacao, tempo_res_atual, patrimonio, telefone,proposito,
@@ -190,13 +206,13 @@ dadosPatr <- dados%>%
 # 13 - Conta poupança títulos - qualitativa ordinal
 # 14 - Nº de responsaveis pela manutenção - Quantitativa discreta 
 
-write_csv(dadosPatr, file = "Dados/01_Processed/dadosPatr.csv")
+write.csv(dadosPatr, file = "00_Dados/01_Processed/dadosPatr.csv")
 
 dadosHist <- dados%>%
   select(ID,status_conta,duracao_mes,hist_credito,qtdd_credito,
          percen_tx_rendim_disp, dev_fiadores,outros_par,n_creditos,classe)
 
-write_csv(dadosHist, file = "Dados/01_Processed/dadosHist.csv")
+write.csv(dadosHist, file = "00_Dados/01_Processed/dadosHist.csv")
 
 # Histórico
 
@@ -211,7 +227,7 @@ write_csv(dadosHist, file = "Dados/01_Processed/dadosHist.csv")
 # 22 - Classe - Qualitativa nominal
 
 
-write_csv(dados, file = "Dados/01_Processed/dados_processados.csv")
+write.csv(dados, file = "00_Dados/01_Processed/dados_processados.csv")
 
 
 

@@ -23,23 +23,7 @@ sapply(dados, class)
 
 summary(dados)
 
-dados <- dados %>%
-  mutate(proposito = str_replace_all(proposito, "carro \\(usado\\)0", "carro (usado)"))
 
-# Edição do texto de resposta para histórico de crédito
-
-dados <- dados %>%
-  mutate(
-    hist_credito = str_replace_all(hist_credito, 
-                                   c(
-                                     "todos os créditos deste banco foram devidamente pagos|nenhum crédito obtido/todos os créditos pagos devidamente" = "Quitados",
-                                     "créditos existentes pagos devidamente até agora" = "Em aberto mas em dia",
-                                     "conta crítica/outros créditos existentes (não neste banco)" = "Em aberto e pendente (outros bancos)",
-                                     "atraso no pagamento no passado" = "Pago mas já esteve em atraso"
-                                   )
-    )
-  ) %>%
-  mutate(hist_credito = if_else(is.na(hist_credito), NA, hist_credito))
 
 # Objetivo ---------------------------------------------------------------------
 
@@ -87,17 +71,19 @@ for (i in propositos) {
 }
 
 Inadimplencia <-  TotalTxInadimplencia%>%
-  filter(hist_credito == "atraso no pagamento no passado"|
-           hist_credito == "conta crítica/outros créditos existentes (não neste banco)")
-
-Inadimplencia <- Inadimplencia %>%
-  mutate(hist_credito = str_replace_all(hist_credito, 
-                                        c("atraso no pagamento no passado" = "Atraso no passado",
-                                          "conta crítica/outros créditos existentes (não neste banco)" = "Atraso no presente (não neste banco)")))
+  filter(hist_credito == "Pendente (outros bancos)"|
+           hist_credito == "Pago mas já esteve em atraso")
+# 
+# Inadimplencia <- Inadimplencia %>%
+#   mutate(hist_credito = str_replace_all(hist_credito,
+#                                         c("atraso no pagamento no passado" = "Atraso no passado",
+#                                           "conta crítica/outros créditos existentes (não neste banco)" = "Atraso no presente (não neste banco)")))
 
 InadimplenciaGeral <- Inadimplencia%>%
   group_by(proposito)%>%
   summarise(InadimplenciaTotal= sum(FreqRel))
+
+
 
 #  Gera a taxa de inadimplência por grupo filtrado
 denominador <- dados%>%
@@ -108,6 +94,67 @@ Tx_Inadimplencia <- dados%>%
   filter(proposito == "eletrodomésticos")%>%
   group_by(hist_credito)%>%
   summarise(FreqRel = n()/denominador)
+
+# Resultado 2.1 - Histórico de crédito por propósito
+
+TotalTxInadimplencia%>%
+  mutate(hist_credito = factor(hist_credito, levels = c("Quitados",
+                                                        "Pago mas já esteve em atraso",
+                                                        "Pendente (outros bancos)",
+                                                        "Pago em dia")))%>%
+ggplot() +
+  aes(x = hist_credito, y = FreqRel) +
+  geom_col() +
+  coord_flip() +
+  theme_minimal() +
+  facet_wrap(vars(proposito))+
+  labs(x = "Propósito",
+       y = "Composição",
+       color = "Propósito")+
+  scale_fill_viridis_d()+
+  theme_bw()+
+  theme(text = element_text(size = 14, face = "bold"),
+        legend.position = "bottom")
+
+ggplot(TotalTxInadimplencia) +
+  aes(x = proposito, y = FreqRel, fill = hist_credito) +
+  geom_col() +
+  coord_flip()+
+  labs(x = "Propósito",
+       y = "Composição",
+       color = "Propósito")+
+  scale_fill_viridis_d()+
+  theme_bw()+
+  theme(text = element_text(size = 14, face = "bold"),
+        legend.position = "bottom")
+
+# Resultado 2.2 - Inadimplência por propósito
+
+ggplot(Inadimplencia) +
+  aes(x = reorder(proposito, FreqRel), y = FreqRel, fill = hist_credito) +
+  geom_col() +
+  coord_flip() +
+  labs(x = "Propósito",
+       y = "Composição",
+       color = "Propósito")+
+  scale_fill_viridis_d()+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold"),
+        legend.position = "bottom")
+
+# Resutado 2.3 - Inadimplência geral
+
+ggplot(InadimplenciaGeral) +
+  aes(x = reorder(proposito, InadimplenciaTotal), y = InadimplenciaTotal ) +
+  geom_col() +
+  coord_flip() +
+  labs(x = "Propósito",
+       y = "Inadimplência")+
+  scale_color_viridis_d()+
+  theme_bw()+
+  theme(text = element_text(size = 14, face = "bold"),
+        legend.position = "bottom")
+
 
 # Resultado 3 - Plot 2 - Quantidade de crédito x idade x propósito x reserva ----------
 
