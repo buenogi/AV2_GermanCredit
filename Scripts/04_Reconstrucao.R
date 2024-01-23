@@ -300,6 +300,8 @@ P8 <- COUNT2 %>%
 P8
 
 plotly::ggplotly(P8)
+
+write_csv(dados, file = "Dados/dados_processados_2.csv")
 #-------------------------------------------------------------------------------
 # Quantidade de cŕedito por duração/mês
 
@@ -363,3 +365,21 @@ plot <- patrcount %>%
 plot
 
 plotly::ggplotly(plot)
+
+
+
+contagem <- dados%>%
+  count(proposito)
+
+contagem%>%
+  mutate(proposito = str_to_title(proposito))%>%
+  ggplot() +
+  aes(x = reorder(proposito,n, decreasing = F), y  = n) +
+  geom_col(fill = "#21918c") +
+  labs(x = "Propósitos",
+       y = "Nº de clientes com este proposito")+
+  coord_flip()+
+  theme_minimal()+
+  theme(text = element_text(size = 18, face = "bold"))
+
+

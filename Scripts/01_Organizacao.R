@@ -1,12 +1,16 @@
+################################################################################
+##################### Limpeza e organização dos dados ##########################
+################################################################################
+
 library(tidyverse)
 library(magrittr)
 library(stringr)
 
 # Organizacao-------------------------------------------------------------------
 
-dados <- read.csv("Dados/Base_Geman.csv")
+dados <- read.csv("Dados/00_Raw/Base_Geman.csv")
 
- # Correcao estado civil --------------------------------------------------------
+# Correcao estado civil --------------------------------------------------------
 
 dados%<>%
   separate(Status.pessoal.e.gênero, into = c("genero", "estado_civil"), sep = ":")
@@ -26,7 +30,8 @@ class(dados$estado_civil)
 dados%>%
   group_by(estado_civil)%>%
   summarise(contagem = n())
- # Correcao status conta corrente existente -------------------------------------
+
+# Correcao status conta corrente existente -------------------------------------
 
 dados%>%
   group_by(Status.da.conta.corrente.existente)%>%
@@ -53,7 +58,7 @@ for (i in 1:nrow(dados)) {
 
 glimpse(dados$Status.da.conta.corrente.existente)
 
- # Correções conta poupança títulos --------------------------------------------
+# Correções conta poupança títulos --------------------------------------------
 
 dados <- dados %>%
   mutate(Conta.poupança.títulos = 
@@ -77,7 +82,7 @@ for (i in 1:nrow(dados)) {
 glimpse(dados$Conta.poupança.títulos)
 
 
- # Correcao "Emprego atual desde":----------------------------------------------
+# Correcao "Emprego atual desde":----------------------------------------------
 
 dados <- dados %>%
   mutate(Emprego.atual.desde = 
@@ -103,9 +108,11 @@ for (i in 1:nrow(dados)) {
 
 glimpse(dados$Emprego.atual.desde)
 
+# Correção de Status de conta:
 
- # Nomenclatura variaveis
- # Classificação de variáveis----------------------------------------------------
+
+
+# Nomenclatura variaveis e classificação de variáveis---------------------------
 
 # Variáveis para descrição de perfil socioeconomico
 
@@ -169,7 +176,7 @@ dadosSocio <- dados%>%
 # 6 - Tempo de serviço no emprego atual - qualitativa ordinal
 # 7 - Trabalhador estrangeiro qualitativa nominal
 
-write_csv(dadosSocio, file = "Dados/dadosSocio.csv")
+write_csv(dadosSocio, file = "Dados/01_Processed/dadosSocio.csv")
 
 dadosPatr <- dados%>%
   select(ID, habitacao, tempo_res_atual, patrimonio, telefone,proposito,
@@ -183,13 +190,13 @@ dadosPatr <- dados%>%
 # 13 - Conta poupança títulos - qualitativa ordinal
 # 14 - Nº de responsaveis pela manutenção - Quantitativa discreta 
 
-write_csv(dadosPatr, file = "Dados/dadosPatr.csv")
+write_csv(dadosPatr, file = "Dados/01_Processed/dadosPatr.csv")
 
 dadosHist <- dados%>%
   select(ID,status_conta,duracao_mes,hist_credito,qtdd_credito,
          percen_tx_rendim_disp, dev_fiadores,outros_par,n_creditos,classe)
 
-write_csv(dadosHist, file = "Dados/dadosHist.csv")
+write_csv(dadosHist, file = "Dados/01_Processed/dadosHist.csv")
 
 # Histórico
 
@@ -204,12 +211,7 @@ write_csv(dadosHist, file = "Dados/dadosHist.csv")
 # 22 - Classe - Qualitativa nominal
 
 
-write_csv(dados, file = "Dados/dados_processados.csv")
-
-
-
-
-
+write_csv(dados, file = "Dados/01_Processed/dados_processados.csv")
 
 
 

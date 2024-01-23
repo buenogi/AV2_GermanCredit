@@ -3,7 +3,7 @@ title: "Análise de crédito - GermanCredit"
 output: 
   flexdashboard::flex_dashboard:
     orientation: columns
-    theme: readable
+    theme: cosmo
     vertical_layout: fill
 runtime: shiny
 ---
@@ -16,36 +16,114 @@ library(ggalluvial)
 library(dplyr)
 library(stringr)
 library(shinydashboard)
+source("Funcoes/Taxa1.R")
+source("Funcoes/Taxa2.R")
+source("Funcoes/Taxa3.R")
+
 dados <- read.csv("Dados/dados_processados_2.csv")
 
-customValueBox <- function(value, subtitle, color) {
-  tags$div(
-    class = "metric-box",
-    style = sprintf("background-color: %s;", color),
-    tags$div(class = "value", value),
-    tags$div(class = "subtitle", subtitle)
-  )
-}
 ```
 
-Column {data-width=350}
+ {data-width=200}
 -----------------------------------------------------------------------
 Análise de clientes por propósito
 =================
-Inputs {.sidebar}
+Inputs  {.sidebar data-width=308}
 ---
 ```{r}
 selectInput("proposito",label = "Propósito: ", choices = unique(dados$proposito), selected = "carro (novo)")
 
 sliderInput("idade_anos",label = "Faixa etária ", min = 18, max = 80, step = 5, dragRange = TRUE, 
                   value = c(18, 80) )
+radioButtons("parcelamentos", label = " Existência de outros \n parcelamentos: ",choices = c("nenhum", "lojas", "banco"))
+
 ```
 
+```{r}
+contagem <- dados%>%
+  count(proposito) 
+renderPlotly({ 
+plotadc <- contagem%>%
+  mutate(proposito = str_to_title(proposito))%>%
+  ggplot() +
+  aes(x = (reorder(proposito,n, decreasing = F)), y  = (n/1000)*100,
+      text = paste0("(%): ", (n/1000)*100)) +
+  geom_col(fill = "#21918c") +
+  labs(x = "",
+       y = "Nº de clientes\ncom este proposito",
+       title = "Proporção\npor propósito")+
+  coord_flip()+
+  theme_minimal()+
+  theme(text = element_text(size = 10, face = "bold"),
+        plot.title = element_text(hjust = 0.0))
+ggplotly(plotadc, tooltip = "text")})
+```
+Column {data-width=250}
+---
 
+### Taxa de inadimplência
+```{r echo=FALSE}
+renderGauge({
+gauge(Taxa1(dados, input$proposito), min = 0, max = 100,
+      gaugeSectors(success = c(0,10),
+                   danger = c(10, 100)))})
+```
 
-Column {data-width=650}
+### Taxa de inadimplência  - Mulheres
+```{r echo=FALSE}
+renderGauge({
+gauge(Taxa2(dados, input$proposito,input$idade_anos[1],input$idade_anos[2]),
+      min = 0, max = 100,
+      gaugeSectors(success = c(0,10),
+                   danger = c(10, 100)))})
+```
+
+### Taxa de inadimplência  - Homens
+```{r echo=FALSE}
+renderGauge({
+gauge(Taxa3(dados, input$proposito,input$idade_anos[1],input$idade_anos[2]),
+      min = 0, max = 100,
+      gaugeSectors(success = c(0,10),
+                   danger = c(10, 100)))})
+```
+
+### Disparidades das médias de crédito fornecido por gênero
+```{r}
+renderPlotly({
+  RESUMO <- dados %>%
+    filter(idade_anos > input$idade_anos[1] & idade_anos < input$idade_anos[2]) %>%
+    filter(proposito %in% input$proposito) %>%
+    group_by(proposito, genero) %>%
+    summarise(Média = mean(qtdd_credito),
+              `Desvio padrão` = sd(qtdd_credito),
+              Mínimo = min(qtdd_credito),
+              `1º Quartil` = quantile(qtdd_credito, 0.25),
+              Mediana = quantile(qtdd_credito, 0.5),
+              `3º Quartil` = quantile(qtdd_credito, 0.75),
+              Máximo = max(qtdd_credito))
+  
+  P3 <- ggplot(RESUMO, aes(x = genero, y = Média, group = proposito)) +
+    geom_line(aes(color = proposito), size = 1.5) +
+    geom_point(aes(color = proposito, text = paste0("Gênero: ", genero, 
+                                                    "\nMédia: ",Média,
+                                                    "\nPropósito: ", proposito)),
+               size = 3) +
+    labs(x = "Gênero",
+         y = "Média de crédito concedido",
+         color = "Propósito") +
+    theme_minimal() +
+    scale_color_viridis_d() +
+    theme(text = element_text(size = 14, face = "bold"),
+          legend.position = "none")
+  
+  ggplotly(P3, tooltip = "text")
+})
+
+```
+
+Column {data-width=550}
 -----------------------------------------------------------------------
-### "Idade por gênero"
+### Idade por gênero
 ```{r}
   renderPlot({dados%>% 
         filter(idade_anos > input$idade_anos[1] & 
@@ -64,7 +142,6 @@ Column {data-width=650}
    })
 ```
 ###  Quantidade de crédito x idade x propósito x reserva
-
 ```{r}
 renderPlotly({
 P2 <- dados %>%
@@ -76,8 +153,11 @@ mutate(reserva = factor(reserva, levels = c("Desconhecido/Inexistente",
         filter(idade_anos > input$idade_anos[1] & 
                  idade_anos < input$idade_anos[2]) %>% 
         filter(proposito %in% input$proposito)%>%
-ggplot(aes(idade_anos, qtdd_credito, color =proposito))+
-geom_jitter( size = 3)+
+ggplot(aes(idade_anos, qtdd_credito, color = proposito, 
+           text = paste0("Idade: ",idade_anos,
+                         "\nCrédito: ", qtdd_credito,
+                         "\nPropósito: ", proposito)))+
+geom_jitter(alpha = 0.7, size = 3)+
 facet_wrap(~reserva, nrow = 1, 
 labeller = labeller(reserva = c(
 "Desconhecido/Inexistente" = "Desconhecido\nInexistente",
@@ -92,8 +172,10 @@ y = "Crédito disponível",
 color = "Propósito")+
 scale_color_viridis_d()+
 theme_bw()+
-theme(text = element_text(size = 14, face = "bold"),
-legend.position = "bottom")
+theme(text = element_text(size = 10, face = "bold"),
+      plot.title = element_text(size = 14, face = "bold"),
+      axis.title = element_text(size = 14, face = "bold"),
+legend.position = "none")
 plotly::ggplotly(P2)})
 ```
 
@@ -126,130 +208,22 @@ P5 <- dados%>%
   theme_minimal() +
   labs(x = "Patrimonio",
        y = "(%)",
-       color = "Status da conta")+
+       fill = "Status da conta")+
   scale_fill_manual(values = c("#fde725",
                                "#5ec962",
                                "#21918c",
                                "#440154"))+
   facet_wrap(vars(genero))+
   theme_minimal()+
-  theme(text = element_text(size = 14, face = "bold"))
+  theme(text = element_text(size = 12, face = "bold"))
   
 plotly::ggplotly(P5)
  })
 ```
 
-Colum {.tabset}
+
+Colum {.tabset width=450}
 ---
-###  Média de crédito por  propósito e gênero
-
-```{r}
-renderTable({  
-  RESUMO <- dados%>%filter(idade_anos > input$idade_anos[1] & 
-                             idade_anos < input$idade_anos[2]) %>% 
-  filter(proposito %in% input$proposito)%>%
-  group_by(proposito,genero)%>%
-  summarise("Média" = mean(qtdd_credito),
-            "Desvio padrão" = sd(qtdd_credito),
-            "Mínimo" = min(qtdd_credito),
-            "1º Quartil" = quantile(qtdd_credito, 0.25),
-            "Mediana" = quantile(qtdd_credito, 0.5),
-            "3º Quartil" = quantile(qtdd_credito, 0.75),
-            "Máximo" = max(qtdd_credito))})
-```
----
-### Disparidades das médias de crédito fornecido por gênero
-```{r}
-renderPlotly({
-  RESUMO <- dados %>%
-    filter(idade_anos > input$idade_anos[1] & idade_anos < input$idade_anos[2]) %>%
-    filter(proposito %in% input$proposito) %>%
-    group_by(proposito, genero) %>%
-    summarise(Média = mean(qtdd_credito),
-              `Desvio padrão` = sd(qtdd_credito),
-              Mínimo = min(qtdd_credito),
-              `1º Quartil` = quantile(qtdd_credito, 0.25),
-              Mediana = quantile(qtdd_credito, 0.5),
-              `3º Quartil` = quantile(qtdd_credito, 0.75),
-              Máximo = max(qtdd_credito))
-  
-  P3 <- ggplot(RESUMO, aes(x = genero, y = Média, group = proposito)) +
-    geom_line(aes(color = proposito), size = 1.5) +
-    geom_point(aes(color = proposito), size = 3) +
-    labs(x = "Gênero",
-         y = "Média de crédito concedido",
-         color = "Propósito") +
-    theme_minimal() +
-    scale_color_viridis_d() +
-    theme(text = element_text(size = 14, face = "bold"))
-  
-  ggplotly(P3)
-})
-
-```
-
-### Média de crédito por histórico de cŕedito e genero
-```{r}
-renderTable({RESUMO2<- dados%>%
-  filter(idade_anos > input$idade_anos[1] & 
-                             idade_anos < input$idade_anos[2]) %>% 
-  group_by(hist_credito,genero)%>%
-  summarise("Média" = mean(qtdd_credito),
-            "Desvio padrão" = sd(qtdd_credito),
-            "Mínimo" = min(qtdd_credito),
-            "1º Quartil" = quantile(qtdd_credito, 0.25),
-            "Mediana" = quantile(qtdd_credito, 0.5),
-            "3º Quartil" = quantile(qtdd_credito, 0.75),
-            "Máximo" = max(qtdd_credito))})
-```
-### Disparidades da média de crédito por histórico de cŕedito e genero
-```{r}
-renderPlotly({
-P4 <- RESUMO2<- dados%>%
-  filter(idade_anos > input$idade_anos[1] & 
-                             idade_anos < input$idade_anos[2]) %>% 
-  group_by(hist_credito,genero)%>%
-  summarise("Média" = mean(qtdd_credito),
-            "Desvio padrão" = sd(qtdd_credito),
-            "Mínimo" = min(qtdd_credito),
-            "1º Quartil" = quantile(qtdd_credito, 0.25),
-            "Mediana" = quantile(qtdd_credito, 0.5),
-            "3º Quartil" = quantile(qtdd_credito, 0.75),
-            "Máximo" = max(qtdd_credito))%>%
-    ggplot(aes(x = genero, y = `Média`, group = hist_credito))+
-  geom_line(aes(color = hist_credito), size = 1.5)+
-  geom_point(aes(color = hist_credito),size = 3)+
-  labs(x = "Gênero",
-       y = "Media de crédito concedido", 
-       color = "Histórico de pagamento")+
-  theme_minimal()+
-  scale_color_viridis_d()+
-  theme(text = element_text(size = 14, face = "bold"),
-        legend.position = "bottom")
-plotly::ggplotly(P4)
-    
-})
-```
-### Duração do parcelamento  idade e tempo de manutenção do emprego
-```{r}
-renderPlot({P6 <- dados%>%
-  filter(idade_anos > input$idade_anos[1] & 
-                 idade_anos < input$idade_anos[2]) %>% 
-        filter(proposito %in% input$proposito)%>%
-  ggplot(aes(idade_anos, duracao_mes, size = percen_tx_rendim_disp, color = outros_par))+
-  geom_point( alpha = 0.7)+
-  scale_color_manual(values = c("#fde725","#440154","#21918c"))+
-  facet_wrap(genero~temp_man_empr_atual, nrow = 2)+
-  labs(x = "Idade (anos)",
-       y = "Duração dos parcelamentos (mês)",
-       size = "Percentual\n da taxa de juros\n com relação ao salário",
-       color = "Existencia de\noutros parcelamentos")+
-  theme_bw()+
-  theme(text = element_text(size = 14, face = "bold"))
-
-P6})
-```
-
 
 ### Perfil ocupacional
 ```{r}
@@ -300,3 +274,94 @@ P8
 plotly::ggplotly(P8)})
 ```
 
+---
+
+
+### Duração do parcelamento  idade e tempo de manutenção do emprego
+```{r}
+renderPlotly({P6 <- dados%>%
+  filter(idade_anos > input$idade_anos[1] & 
+                 idade_anos < input$idade_anos[2]) %>% 
+        filter(proposito %in% input$proposito,
+             outros_par == input$parcelamentos)%>%
+  ggplot(aes(idade_anos, duracao_mes, text = paste0("Idade: ", idade_anos,
+                                                    "\nDuração do parcelamento (meses): ", duracao_mes)))+
+  geom_point(aes(size = as.factor(percen_tx_rendim_disp), color = outros_par), alpha = 0.7)+
+  geom_smooth( alpha = 0.3)+
+  scale_size_manual(values = c("1" = 3, "2" = 5, "3" = 7, "4" = 9, "5" = 11))+
+  scale_color_manual(values = c("#21918c"))+
+  facet_wrap(~genero, nrow = 2)+
+  labs(x = "Idade (anos)",
+       y = "Duração dos parcelamentos (mês)",
+       size = "Percentual\n da taxa de juros\n com relação ao salário",
+       color = "Existencia de\noutros parcelamentos")+
+  theme_bw()+
+  theme(text = element_text(size = 14, face = "bold"))
+
+ggplotly(P6, tooltip = "text")
+
+})
+```
+### Disparidades da média de crédito por histórico de cŕedito e genero
+```{r}
+renderPlotly({
+P4 <- RESUMO2<- dados%>%
+  filter(idade_anos > input$idade_anos[1] & 
+                             idade_anos < input$idade_anos[2]) %>% 
+  group_by(hist_credito,genero)%>%
+  summarise("Média" = mean(qtdd_credito),
+            "Desvio padrão" = sd(qtdd_credito),
+            "Mínimo" = min(qtdd_credito),
+            "1º Quartil" = quantile(qtdd_credito, 0.25),
+            "Mediana" = quantile(qtdd_credito, 0.5),
+            "3º Quartil" = quantile(qtdd_credito, 0.75),
+            "Máximo" = max(qtdd_credito))%>%
+    ggplot(aes(x = genero, y = `Média`, group = hist_credito))+
+  geom_line(aes(color = hist_credito), size = 1.5)+
+  geom_point(aes(color = hist_credito),size = 3)+
+  labs(x = "Gênero",
+       y = "Media de crédito concedido", 
+       color = "Histórico de pagamento")+
+  theme_minimal()+
+  scale_color_viridis_d()+
+  theme(text = element_text(size = 14, face = "bold"),
+        legend.position = "bottom")
+plotly::ggplotly(P4)
+    
+})
+```
+
+
+
+### Média de crédito por histórico de cŕedito e genero
+```{r}
+renderTable({RESUMO2<- dados%>%
+  filter(idade_anos > input$idade_anos[1] & 
+                             idade_anos < input$idade_anos[2]) %>% 
+  group_by(hist_credito,genero)%>%
+  summarise("Média" = mean(qtdd_credito),
+            "Desvio padrão" = sd(qtdd_credito),
+            "Mínimo" = min(qtdd_credito),
+            "1º Quartil" = quantile(qtdd_credito, 0.25),
+            "Mediana" = quantile(qtdd_credito, 0.5),
+            "3º Quartil" = quantile(qtdd_credito, 0.75),
+            "Máximo" = max(qtdd_credito))})
+```
+
+
+###  Média de crédito por  propósito e gênero
+
+```{r}
+renderTable({  
+  RESUMO <- dados%>%filter(idade_anos > input$idade_anos[1] & 
+                             idade_anos < input$idade_anos[2]) %>% 
+  filter(proposito %in% input$proposito)%>%
+  group_by(proposito,genero)%>%
+  summarise("Média" = mean(qtdd_credito),
+            "Desvio padrão" = sd(qtdd_credito),
+            "Mínimo" = min(qtdd_credito),
+            "1º Quartil" = quantile(qtdd_credito, 0.25),
+            "Mediana" = quantile(qtdd_credito, 0.5),
+            "3º Quartil" = quantile(qtdd_credito, 0.75),
+            "Máximo" = max(qtdd_credito))})
+```
