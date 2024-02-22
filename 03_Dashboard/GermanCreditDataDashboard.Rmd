@@ -23,12 +23,12 @@ library(ggalluvial)
 library(dplyr)
 library(stringr)
 library(shinydashboard)
-source("../02_Funcoes/Taxa1.R")
-source("../02_Funcoes/Taxa2.R")
-source("../02_Funcoes/Taxa3.R")
-source("../02_Funcoes/meutema.R")
+source("Taxa1.R")
+source("Taxa2.R")
+source("Taxa3.R")
+source("meutema.R")
 
-dados <- read.csv("../00_Dados/01_Processed/dados_processados_2.csv")
+dados <- read.csv("dados_processados_2.csv")
 
 ```
 
