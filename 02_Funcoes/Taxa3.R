@@ -12,7 +12,7 @@ Taxa3 <- function(dados, filtro1, filtro2, filtro3) {
            genero == "Homem", 
            idade_anos > filtro2 & 
              idade_anos < filtro3,
-           hist_credito == "conta crítica/outros créditos existentes (não neste banco)") %>%
+           hist_credito == "Pendente (outros bancos)") %>%
     summarise(FreqRel = n() / denominador)
   
   tx3 <- Tx_Inadimplencia$FreqRel * 100

@@ -388,7 +388,7 @@ P8
 
 plotly::ggplotly(P8)
 
-write_csv(dados, file = "Dados/dados_processados_2.csv")
+write.csv(dados, file = "00_Dados/01_Processed/dados_processados_2.csv")
 #-------------------------------------------------------------------------------
 # Quantidade de cŕedito por duração/mês
 

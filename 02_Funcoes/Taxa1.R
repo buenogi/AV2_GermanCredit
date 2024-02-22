@@ -7,7 +7,7 @@ denominador <- dados %>%
 
 Tx_Inadimplencia <- dados %>%
   filter(proposito == filtro1,
-         hist_credito == "conta crítica/outros créditos existentes (não neste banco)")%>%
+         hist_credito == "Pendente (outros bancos)")%>%
   summarise(FreqRel = n() / denominador)
 tx <- Tx_Inadimplencia$FreqRel*100
 return(tx)
