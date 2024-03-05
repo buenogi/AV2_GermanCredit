@@ -1,49 +1,85 @@
-# History files
+# Arquivos de Histórico
 .Rhistory
 .Rapp.history
 
-# Session Data files
+# Arquivos de Dados de Sessão
 .RData
 .RDataTmp
 
-# User-specific files
+# Arquivos Específicos do Usuário
 .Ruserdata
 
-# Example code in package build process
+# Código de Exemplo no Processo de Construção do Pacote
 *-Ex.R
 
-# Output files from R CMD build
+# Arquivos de Saída do R CMD build
 /*.tar.gz
 
-# Output files from R CMD check
+# Arquivos de Saída do R CMD check
 /*.Rcheck/
 
-# RStudio files
+# Arquivos do RStudio
 .Rproj.user/
 
-# produced vignettes
+# Vignettes produzidos
 vignettes/*.html
 vignettes/*.pdf
 
-# OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
+# Token OAuth2, consulte https://github.com/hadley/httr/releases/tag/v0.3
 .httr-oauth
 
-# knitr and R markdown default cache directories
+# Diretórios de Cache padrão do knitr e R Markdown
 *_cache/
 /cache/
 
-# Temporary files created by R markdown
+# Arquivos Temporários criados pelo R Markdown
 *.utf8.md
 *.knit.md
 
-# R Environment Variables
+# Variáveis de Ambiente do R
 .Renviron
 
-# pkgdown site
+# Site pkgdown
 docs/
 
-# translation temp files
+# Arquivos Temporários de Tradução
 po/*~
 
-# RStudio Connect folder
+# Pasta RStudio Connect
 rsconnect/
+
+# Arquivos Gerados pelo R
+.RData
+.Rhistory
+
+# Diretórios Gerados pelo R
+.Rproj.user/
+
+# Pacotes e Ambientes Virtuais
+renv/
+packrat/
+
+# Outros Arquivos e Diretórios Comuns
+*.rds
+*.Rproj
+.Rcheck/
+.RShiny/
+
+# Arquivos Temporários
+.Renviron
+.Rprofile.site
+.Rproj.user/
+.Rhistory
+.Rapp.history
+.Renviron.site
+.Rproj*
+*.html
+
+# Arquivos Específicos do RStudio
+.Rproj.user/
+
+# Outros Arquivos
+.DS_Store
+.json
+.css
+.TeX
